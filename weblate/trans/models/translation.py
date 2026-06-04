@@ -771,6 +771,15 @@ class Translation(
         self.revision = self.get_git_blob_hash()
         self.save(update_fields=["revision"])
 
+    def store_shared_file_hashes(self) -> None:
+        """Refresh hashes for sibling translations using the same physical file."""
+        if not self.filename or not self.component.file_format_cls.multi_language_file:
+            return
+        for translation in self.component.translation_set.filter(
+            filename=self.filename
+        ).exclude(pk=self.pk):
+            translation.store_hash()
+
     def get_last_author(self):
         """Return last author of change done in Weblate."""
         if not self.stats.last_author:
@@ -1120,6 +1129,7 @@ class Translation(
             # Store updated hash
             if store_hash:
                 self.store_hash()
+                self.store_shared_file_hashes()
             self.addon_commit_files = []
 
         return True

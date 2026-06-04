@@ -390,6 +390,7 @@ class TranslationFormat[S: InnerStore, U: InnerUnit, T: TranslationUnit]:
     autoload: tuple[str, ...] = ()
     can_add_unit: bool = True
     can_delete_unit: bool = True
+    multi_language_file: bool = False
     language_format: str = "posix"
     simple_filename: bool = True
     empty_file_template: str | bytes | None = None
@@ -763,7 +764,18 @@ class TranslationFormat[S: InnerStore, U: InnerUnit, T: TranslationUnit]:
 
         Calculated for given path, filemask and language code.
         """
+        if cls.multi_language_file:
+            return mask
         return mask.replace("*", code)
+
+    @classmethod
+    def list_languages(
+        cls,
+        filename: str,
+        file_format_params: FileFormatParams | None = None,  # noqa: ARG003
+    ) -> list[str]:
+        """List language codes available in a multi-language file."""
+        return []
 
     @classmethod
     def add_language(

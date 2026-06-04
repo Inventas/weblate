@@ -597,7 +597,7 @@ class Component(  # noqa: PLR0904
     filemask = models.CharField(
         verbose_name=gettext_lazy("File mask"),
         max_length=FILENAME_LENGTH,
-        validators=[validate_filemask, validate_filename],
+        validators=[validate_filename],
         help_text=gettext_lazy(
             "Path of files to translate relative to repository root,"
             " use * instead of language code, "
@@ -2151,6 +2151,8 @@ class Component(  # noqa: PLR0904
         for filename in [self.template, self.intermediate, self.new_base]:
             if filename and filename in changed:
                 return True
+        if self.file_format_cls.multi_language_file and "*" not in self.filemask:
+            return self.filemask in changed
         return any(self.filemask_re.match(path) for path in changed)
 
     def needs_commit_upstream(self) -> bool:
@@ -3336,6 +3338,9 @@ class Component(  # noqa: PLR0904
 
         for filename in glob(os.path.join(self.full_path, self.filemask)):
             path = path_separator(filename).replace(prefix, "")
+            if self.file_format_cls.multi_language_file:
+                matches.add(path)
+                continue
             code = self.get_lang_code(path)
             try:
                 language_match = regex_match(language_re, code)
@@ -3380,6 +3385,52 @@ class Component(  # noqa: PLR0904
             matches.discard(self.template)
             return [self.template, *sorted(matches)]
         return sorted(matches)
+
+    def get_mask_match_languages(self, path: str) -> list[str]:
+        """Return language codes represented by a matched file."""
+        if not self.file_format_cls.multi_language_file:
+            return [self.get_lang_code(path)]
+        return self.file_format_cls.list_languages(
+            os.path.join(self.full_path, path),
+            file_format_params=self.file_format_params,
+        )
+
+    def get_language_matches(
+        self,
+        matches: list[str],
+        *,
+        source_file: str | None = None,
+        raise_on_timeout: bool = False,
+    ) -> list[tuple[str, str]]:
+        """Return matched files expanded to individual language entries."""
+        result = []
+        language_re = compile_regex(self.language_regex)
+
+        for path in matches:
+            if path == source_file:
+                result.append((path, self.source_language.code))
+                continue
+            codes = self.get_mask_match_languages(path)
+            for code in codes:
+                try:
+                    language_match = regex_match(language_re, code)
+                except TimeoutError:
+                    if raise_on_timeout:
+                        raise
+                    report_error(
+                        "Component language regex timed out", project=self.project
+                    )
+                    self.log_warning(
+                        "language regex timed out for %s [%s]", code, path
+                    )
+                    continue
+
+                if language_match and code != "source":
+                    result.append((path, code))
+                else:
+                    self.log_info("skipping language %s [%s]", code, path)
+
+        return result
 
     def is_gettext_po_template(self) -> bool:
         """Check whether the base file should be handled as a gettext template."""
@@ -3631,8 +3682,6 @@ class Component(  # noqa: PLR0904
 
         if not self.has_template():
             # This creates the translation when necessary
-            translation = self.source_translation
-
             if self.is_gettext_po_template() and os.path.exists(
                 self.get_new_base_filename()
             ):
@@ -3640,35 +3689,39 @@ class Component(  # noqa: PLR0904
                 matches = [self.new_base, *matches]
                 source_file = self.new_base
             else:
-                # Always include source language to avoid parsing matching files
-                languages[self.source_language.code] = translation
-                translations[translation.id] = translation
+                if not self.file_format_cls.multi_language_file:
+                    translation = self.source_translation
+                    # Always include source language to avoid parsing matching files
+                    languages[self.source_language.code] = translation
+                    translations[translation.id] = translation
 
             # Delete old source units after change from monolingual to bilingual
             if changed_template:
-                translation.unit_set.all().delete()
+                self.source_translation.unit_set.all().delete()
+
+        language_matches = self.get_language_matches(matches, source_file=source_file)
 
         if self.translations_count != -1:
             self.translations_progress = 0
-            self.translations_count = len(matches) + sum(
+            self.translations_count = len(language_matches) + sum(
                 c.translation_set.count() for c in self.linked_children
             )
-        for pos, path in enumerate(matches):
+        for pos, (path, code) in enumerate(language_matches):
             self.refresh_lock()
 
             if not self._sources_prefetched and path != source_file:
                 self.preload_sources()
             with transaction.atomic():
-                if path == source_file:
-                    code = self.source_language.code
-                else:
-                    code = self.get_lang_code(path)
                 if langs is not None and code not in langs:
                     self.log_info("skipping %s", path)
                     continue
 
                 self.log_info(
-                    "checking %s (%s) [%d/%d]", path, code, pos + 1, len(matches)
+                    "checking %s (%s) [%d/%d]",
+                    path,
+                    code,
+                    pos + 1,
+                    len(language_matches),
                 )
                 lang = Language.objects.auto_get_or_create(
                     code=self.get_language_alias(code),
@@ -3967,18 +4020,27 @@ class Component(  # noqa: PLR0904
 
     def clean_lang_codes(self, matches: list[str]) -> None:
         """Validate that there are no double language codes."""
-        if not matches and not self.is_valid_base_for_new():
+        language_matches = self.get_language_matches(
+            matches, source_file=self.template, raise_on_timeout=True
+        )
+        if not language_matches:
+            if matches:
+                message = gettext(
+                    "Could not find any matching language, please check the file mask."
+                )
+                raise ValidationError({"filemask": message})
+            if self.is_valid_base_for_new():
+                return
             raise ValidationError(
                 {"filemask": gettext("The file mask did not match any files.")}
             )
         langs: dict[str, str] = {}
         existing_langs: set[str] = set()
 
-        for match in matches:
+        for match, code in language_matches:
             if match == self.template:
                 lang = self.source_language
             else:
-                code = self.get_lang_code(match, validate=True)
                 lang = validate_language_code(
                     self.get_language_alias(code), match, True
                 )
@@ -4010,12 +4072,21 @@ class Component(  # noqa: PLR0904
         """Validate that translation files can be parsed."""
         errors: list[tuple[str, Exception]] = []
         dir_path = self.full_path
-        for match in matches:
+        for match, code in self.get_language_matches(
+            matches, source_file=self.template
+        ):
             try:
+                kwargs = {}
+                if self.file_format_cls.multi_language_file:
+                    kwargs = {
+                        "language_code": code,
+                        "source_language": self.source_language.code,
+                    }
                 store = self.file_format_cls(  # pylint: disable=too-many-function-args,unexpected-keyword-arg
                     os.path.join(dir_path, match),
                     self.template_store,
                     file_format_params=self.file_format_params,
+                    **kwargs,
                 )
                 store.check_valid()
             except Exception as error:
@@ -4289,7 +4360,17 @@ class Component(  # noqa: PLR0904
     def clean_model_settings(self) -> None:
         """Validate component settings that do not require repository access."""
         self.drop_file_format_cache()
-        if self.new_lang == "url" and not self.project.instructions:
+        if self.file_format:
+            try:
+                multi_language_file = self.file_format_cls.multi_language_file
+            except KeyError:
+                multi_language_file = True
+            if not multi_language_file:
+                validate_filemask(self.filemask)
+
+        if self.project_id is None:
+            return
+        if self.effective_new_lang == "url" and not self.project.instructions:
             msg = gettext(
                 "Please either fill in an instruction URL "
                 "or use a different option for adding a new language."
@@ -5016,13 +5097,8 @@ class Component(  # noqa: PLR0904
             if created:
                 Change.store_last_change(translation, None)
 
-            # Create the file
-            if os.path.exists(fullname):
-                # Ignore request if file exists (possibly race condition as
-                # the processing of new language can take some time and user
-                # can submit again)
-                fail_message(gettext("Translation file already exists!"))
-            else:
+            # Create the file or add the language to a shared catalog.
+            if file_format.multi_language_file or not os.path.exists(fullname):
                 file_format.add_language(
                     fullname,
                     language,
@@ -5041,6 +5117,11 @@ class Component(  # noqa: PLR0904
                     template=self.add_message,
                     store_hash=False,
                 )
+            else:
+                # Ignore request if file exists (possibly race condition as
+                # the processing of new language can take some time and user
+                # can submit again)
+                fail_message(gettext("Translation file already exists!"))
 
         # Trigger parsing of the newly added file
         if create_translations:
@@ -5072,6 +5153,11 @@ class Component(  # noqa: PLR0904
         send_post_add_signal: bool = True,
     ) -> None:
         """Restore a missing translation file using the new-language template."""
+        if not translation.filename and self.file_format_cls.multi_language_file:
+            translation.filename = self.file_format_cls.get_language_filename(
+                self.filemask, translation.language_code
+            )
+            translation.save(update_fields=["filename"])
         fullname = translation.get_filename()
         if fullname is None:
             msg = "Attempt to restore translation without a filename."

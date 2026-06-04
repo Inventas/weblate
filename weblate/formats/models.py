@@ -86,6 +86,7 @@ class FormatsConf(AppConf):
         "weblate.formats.ttkit.PoXliffFormat",
         "weblate.formats.ttkit.AppleXliffFormat",
         "weblate.formats.ttkit.StringsFormat",
+        "weblate.formats.ttkit.XCStringsFormat",
         "weblate.formats.ttkit.PropertiesFormat",
         "weblate.formats.ttkit.JoomlaFormat",
         "weblate.formats.ttkit.GWTFormat",
