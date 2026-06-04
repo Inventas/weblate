@@ -5,6 +5,8 @@ Weblate 2026.7
 
 .. rubric:: New features
 
+* Added native Apple String Catalog (``.xcstrings``) support.
+
 .. rubric:: Improvements
 
 * Management interface access control is now more fine-grained with dedicated site-wide permissions.

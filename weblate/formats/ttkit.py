@@ -1924,6 +1924,57 @@ class StringsFormat(PropertiesBaseFormat):
         return cls.empty_file_template
 
 
+class XCStringsFormat(TTKitFormat):
+    # Translators: File format name
+    name = gettext_lazy("Apple String Catalog")
+    format_id = "xcstrings"
+    autoload: tuple[str, ...] = ("*.xcstrings",)
+    language_format = "bcp"
+    loader: ClassVar[tuple[str, str]] = ("xcstrings", "XCStringsFile")
+    multi_language_file = True
+    monolingual = False
+    supports_plural: bool = True
+    supports_descriptions = True
+    supports_context = True
+    supports_read_only = True
+    additional_states = (STATE_FUZZY,)
+    check_flags = ("objc-format",)
+
+    @classmethod
+    def list_languages(
+        cls,
+        filename: str,
+        file_format_params: FileFormatParams | None = None,  # noqa: ARG003
+    ) -> list[str]:
+        return cls.get_class().list_languages(filename)
+
+    @classmethod
+    def create_new_file(
+        cls,
+        filename: str,
+        language: Language,
+        base: str,
+        callback: Callable | None = None,  # noqa: ARG003
+        file_format_params: FileFormatParams | None = None,  # noqa: ARG003
+    ) -> None:
+        """Add a new language to an Apple String Catalog."""
+        language_code = cls.get_language_code(language.code)
+        store_class = cls.get_class()
+        catalog_filename = filename if os.path.exists(filename) else base
+        if catalog_filename:
+            store = store_class(
+                Path(catalog_filename).read_bytes(),
+                language_code=language_code,
+            )
+        else:
+            store = store_class(
+                language_code=language_code,
+                sourcelanguage=language_code,
+            )
+        store.add_language(language_code)
+        store.savefile(filename)
+
+
 class PropertiesFormat(PropertiesBaseFormat):
     # Translators: File format name
     name = gettext_lazy("Java Properties")

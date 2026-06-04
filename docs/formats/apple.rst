@@ -39,3 +39,35 @@ Weblate configuration
 +--------------------------------+----------------------------------------------+
 | File encoding                  | `UTF-8`                                      |
 +--------------------------------+----------------------------------------------+
+
+.. _xcstrings:
+
+Apple String Catalog
+--------------------
+
+.. index::
+    pair: Apple String Catalog; file format
+    pair: xcstrings; file format
+
+Apple String Catalog files store the source language and all localizations in
+one ``.xcstrings`` catalog file. Configure the component file mask to point to
+the catalog file directly, without a language placeholder.
+
+.. seealso::
+
+   * `Localizing and varying text with a string catalog <https://developer.apple.com/documentation/xcode/localizing-and-varying-text-with-a-string-catalog>`_
+
+Weblate configuration
++++++++++++++++++++++
+
++--------------------------------+----------------------------------------------+
+| Typical Weblate :ref:`component`                                              |
++================================+==============================================+
+| File mask                      |``Resources/Localizable.xcstrings``           |
++--------------------------------+----------------------------------------------+
+| Monolingual base language file | `Empty`                                      |
++--------------------------------+----------------------------------------------+
+| Template for new translations  | `Empty`                                      |
++--------------------------------+----------------------------------------------+
+| File format                    | `Apple String Catalog`                       |
++--------------------------------+----------------------------------------------+
