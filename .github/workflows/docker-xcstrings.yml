@@ -1,0 +1,106 @@
+# Copyright © Inventas GmbH
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Build xcstrings Weblate image
+
+on:
+  workflow_dispatch:
+    inputs:
+      weblate_base_image:
+        description: Upstream Weblate base image.
+        required: true
+        default: weblate/weblate:2026.5
+      inventas_translate_ref:
+        description: Inventas translate-toolkit commit, branch, or tag.
+        required: true
+        default: 8ebe3b624aaaebc5856fea8b2709a6606e2fcc93
+      publish_stable_tag:
+        description: Publish ghcr.io/inventas/weblate:2026.5-xcstrings.
+        required: true
+        type: boolean
+        default: true
+  push:
+    branches:
+    - feature/xcstrings-native-support-2026.5
+    tags:
+    - weblate-2026.5-xcstrings*
+    paths:
+    - .dockerignore
+    - .github/workflows/docker-xcstrings.yml
+    - docker/xcstrings/**
+    - MANIFEST.in
+    - pyproject.toml
+    - setup.py
+    - uv.lock
+    - weblate/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/inventas/weblate
+  WEBLATE_BASE_IMAGE: weblate/weblate:2026.5
+  INVENTAS_TRANSLATE_REF: 8ebe3b624aaaebc5856fea8b2709a6606e2fcc93
+
+jobs:
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+
+    - name: Resolve image inputs
+      id: image-inputs
+      env:
+        INPUT_WEBLATE_BASE_IMAGE: ${{ inputs.weblate_base_image }}
+        INPUT_INVENTAS_TRANSLATE_REF: ${{ inputs.inventas_translate_ref }}
+      run: |
+        WEBLATE_BASE_IMAGE="${INPUT_WEBLATE_BASE_IMAGE:-${WEBLATE_BASE_IMAGE}}"
+        INVENTAS_TRANSLATE_REF="${INPUT_INVENTAS_TRANSLATE_REF:-${INVENTAS_TRANSLATE_REF}}"
+        {
+          echo "weblate-base-image=${WEBLATE_BASE_IMAGE}"
+          echo "inventas-translate-ref=${INVENTAS_TRANSLATE_REF}"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Resolve image tags
+      id: image-tags
+      env:
+        PUBLISH_STABLE_TAG: ${{ inputs.publish_stable_tag }}
+      run: |
+        SHORT_SHA="${GITHUB_SHA::12}"
+        {
+          echo "tags<<EOF"
+          echo "${IMAGE_NAME}:${SHORT_SHA}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] || [ "${PUBLISH_STABLE_TAG:-true}" = "true" ]; then
+            echo "${IMAGE_NAME}:2026.5-xcstrings"
+          fi
+          echo "EOF"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+    - name: Log in to GHCR
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }} # zizmor: ignore[secrets-outside-env]
+
+    - name: Build and push image
+      uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+      with:
+        context: .
+        file: docker/xcstrings/Dockerfile
+        push: true
+        build-args: |
+          WEBLATE_BASE_IMAGE=${{ steps.image-inputs.outputs.weblate-base-image }}
+          INVENTAS_TRANSLATE_REF=${{ steps.image-inputs.outputs.inventas-translate-ref }}
+        tags: ${{ steps.image-tags.outputs.tags }}
