@@ -4367,7 +4367,8 @@ class Component(  # noqa: PLR0904
 
         if self.project_id is None:
             return
-        if self.effective_new_lang == "url" and not self.project.instructions:
+        effective_new_lang = getattr(self, "effective_new_lang", self.new_lang)
+        if effective_new_lang == "url" and not self.project.instructions:
             msg = gettext(
                 "Please either fill in an instruction URL "
                 "or use a different option for adding a new language."

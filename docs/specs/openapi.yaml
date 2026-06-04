@@ -29467,6 +29467,7 @@ components:
       - txt
       - webextension
       - wxl
+      - xcstrings
       - xliff
       - xliff2
       - xliff2-placeables
@@ -29537,6 +29538,7 @@ components:
         * `txt` - Plain text file
         * `webextension` - WebExtension JSON file
         * `wxl` - WixLocalization file
+        * `xcstrings` - Apple String Catalog
         * `xliff` - XLIFF 1.2 with placeables support
         * `xliff2` - XLIFF 2.0 translation file
         * `xliff2-placeables` - XLIFF 2.0 translation file with placeables support
