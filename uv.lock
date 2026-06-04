@@ -4383,16 +4383,13 @@ wheels = [
 
 [[package]]
 name = "translate-toolkit"
-version = "3.19.10"
-source = { registry = "https://pypi.org/simple" }
+version = "3.19.11"
+source = { url = "https://github.com/Inventas/translate/archive/8ebe3b624aaaebc5856fea8b2709a6606e2fcc93.tar.gz" }
 dependencies = [
     { name = "lxml" },
     { name = "unicode-segmentation-rs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/19/6af0158c320a6df71072a813dc65347ca156bc69cc94204c8d7784c52f20/translate_toolkit-3.19.10.tar.gz", hash = "sha256:d996eb0e802c1c854468c5dca52343e620ab107c803fb82090c130730763b76a", size = 584087, upload-time = "2026-05-14T13:58:51.265Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/61/b45ce2550ef62255a75d1fb3e77c88ef291a1e8ec6b178b02dfe5ced1911/translate_toolkit-3.19.10-py3-none-any.whl", hash = "sha256:48637f97774d389392ad2ea291f1236fb4fa80347d389e2806f7f423859d7426", size = 804752, upload-time = "2026-05-14T13:58:49.345Z" },
-]
+sdist = { hash = "sha256:399d5c30dd8f8a7e07accce604ddf01ad9a8d1c4817309dac6c791be114f1dd1" }
 
 [package.optional-dependencies]
 chardet = [
@@ -4422,6 +4419,26 @@ toml = [
 yaml = [
     { name = "ruamel-yaml" },
 ]
+
+[package.metadata]
+requires-dist = [
+    { name = "aeidon", marker = "extra == 'subtitles'", specifier = ">=1.15,<1.17" },
+    { name = "charset-normalizer", marker = "extra == 'chardet'", specifier = ">=3.4.0,<4.0" },
+    { name = "fluent-syntax", marker = "extra == 'fluent'", specifier = ">=0.19.0,<0.20" },
+    { name = "iniparse", marker = "extra == 'ini'", specifier = "==0.5" },
+    { name = "lxml", specifier = ">=6.1.0,<7.0" },
+    { name = "mistletoe", marker = "extra == 'markdown'", specifier = ">=1.4.0,<1.6.0" },
+    { name = "phply", marker = "extra == 'php'", specifier = ">=1.2.6,<1.3" },
+    { name = "pyenchant", marker = "extra == 'spellcheck'", specifier = "==3.3.0" },
+    { name = "pyparsing", marker = "extra == 'rc'", specifier = ">=3.2.0,<3.4" },
+    { name = "rapidfuzz", marker = "extra == 'levenshtein'", specifier = ">=3.14.0" },
+    { name = "ruamel-yaml", marker = "extra == 'yaml'", specifier = ">=0.19.1,<0.20.0" },
+    { name = "tomlkit", marker = "extra == 'toml'", specifier = ">=0.13.0,<0.16.0" },
+    { name = "translate-toolkit", extras = ["chardet", "fluent", "ical", "ini", "levenshtein", "markdown", "php", "rc", "spellcheck", "subtitles", "toml", "yaml"], marker = "extra == 'all'" },
+    { name = "unicode-segmentation-rs", specifier = ">=0.2.0,<0.3" },
+    { name = "vobject", marker = "extra == 'ical'", specifier = "==0.9.9" },
+]
+provides-extras = ["all", "chardet", "fluent", "ical", "ini", "levenshtein", "markdown", "php", "rc", "spellcheck", "subtitles", "toml", "yaml"]
 
 [[package]]
 name = "translation-finder"
@@ -5190,7 +5207,7 @@ requires-dist = [
     { name = "sphinx", marker = "extra == 'sphinx'", specifier = "==8.2.3" },
     { name = "tesserocr", specifier = "==2.10.0" },
     { name = "tomlkit", specifier = "==0.15.0" },
-    { name = "translate-toolkit", extras = ["chardet", "fluent", "ini", "markdown", "toml", "php", "rc", "subtitles", "yaml"], specifier = "==3.19.10" },
+    { name = "translate-toolkit", extras = ["chardet", "fluent", "ini", "markdown", "toml", "php", "rc", "subtitles", "yaml"], url = "https://github.com/Inventas/translate/archive/8ebe3b624aaaebc5856fea8b2709a6606e2fcc93.tar.gz" },
     { name = "translation-finder", specifier = "==3.1" },
     { name = "twisted", specifier = "==26.4.0" },
     { name = "unicode-segmentation-rs", specifier = "==0.2.4" },

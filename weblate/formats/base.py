@@ -771,7 +771,7 @@ class TranslationFormat[S: InnerStore, U: InnerUnit, T: TranslationUnit]:
     @classmethod
     def list_languages(
         cls,
-        filename: str,
+        filename: str,  # noqa: ARG003
         file_format_params: FileFormatParams | None = None,  # noqa: ARG003
     ) -> list[str]:
         """List language codes available in a multi-language file."""

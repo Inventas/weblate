@@ -33,9 +33,7 @@ class SharedCatalogUnit:
 
 
 class SharedCatalogStore:
-    def __init__(
-        self, filename: str, language_code: str | None, catalog: dict
-    ) -> None:
+    def __init__(self, filename: str, language_code: str | None, catalog: dict) -> None:
         self.filename = filename
         self.language_code = language_code
         self.catalog = catalog
@@ -54,9 +52,9 @@ class SharedCatalogStore:
     def save(self) -> None:
         if self.language_code != self.catalog.get("sourceLanguage"):
             for unit in self.units:
-                self.catalog["strings"][unit.context].setdefault(
-                    "localizations", {}
-                )[self.language_code] = unit.target
+                self.catalog["strings"][unit.context].setdefault("localizations", {})[
+                    self.language_code
+                ] = unit.target
         Path(self.filename).write_text(
             json.dumps(self.catalog, indent=2, sort_keys=True), encoding="utf-8"
         )
@@ -135,7 +133,7 @@ class SharedCatalogFormat(
     @classmethod
     def is_valid_base_for_new(
         cls,
-        base: str,
+        base: str,  # noqa: ARG003
         monolingual: bool,  # noqa: ARG003
         errors: list[Exception] | None = None,  # noqa: ARG003
         fast: bool = False,  # noqa: ARG003
@@ -148,7 +146,7 @@ class SharedCatalogFormat(
         cls,
         filename: str,
         language: Language,
-        base: str,
+        base: str,  # noqa: ARG003
         callback=None,  # noqa: ARG003
         file_format_params: FileFormatParams | None = None,  # noqa: ARG003
     ) -> None:
@@ -185,7 +183,7 @@ class MultiLanguageFileTest(RepoTestCase):
     def setUp(self) -> None:
         super().setUp()
         FILE_FORMATS[SharedCatalogFormat.format_id] = SharedCatalogFormat
-        field = Component._meta.get_field("file_format")
+        field = Component._meta.get_field("file_format")  # noqa: SLF001
         old_choices = field.choices
         field.choices = [
             *old_choices,

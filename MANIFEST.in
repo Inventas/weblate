@@ -1,4 +1,5 @@
 include LICENSE
+include .dockerignore
 include ChangeLog
 include BACKERS.rst
 include README.rst
@@ -8,6 +9,7 @@ include setup.py
 recursive-include weblate *.py
 recursive-include weblate/examples *
 recursive-include weblate/locale *.po *.pot
+recursive-include docker *
 include weblate/billing/test-data/*
 include weblate/addons/extractors/sphinx/docutils.conf
 include weblate/trans/tests/data/*

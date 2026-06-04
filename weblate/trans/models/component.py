@@ -3420,9 +3420,7 @@ class Component(  # noqa: PLR0904
                     report_error(
                         "Component language regex timed out", project=self.project
                     )
-                    self.log_warning(
-                        "language regex timed out for %s [%s]", code, path
-                    )
+                    self.log_warning("language regex timed out for %s [%s]", code, path)
                     continue
 
                 if language_match and code != "source":
@@ -3637,7 +3635,7 @@ class Component(  # noqa: PLR0904
         if self.lock.is_locked:
             self.lock.reacquire()
 
-    def _create_translations(  # noqa: C901,PLR0915
+    def _create_translations(  # noqa: C901
         self,
         *,
         force: bool = False,
@@ -3688,12 +3686,11 @@ class Component(  # noqa: PLR0904
                 # Process template file as source to include additional metadata
                 matches = [self.new_base, *matches]
                 source_file = self.new_base
-            else:
-                if not self.file_format_cls.multi_language_file:
-                    translation = self.source_translation
-                    # Always include source language to avoid parsing matching files
-                    languages[self.source_language.code] = translation
-                    translations[translation.id] = translation
+            elif not self.file_format_cls.multi_language_file:
+                translation = self.source_translation
+                # Always include source language to avoid parsing matching files
+                languages[self.source_language.code] = translation
+                translations[translation.id] = translation
 
             # Delete old source units after change from monolingual to bilingual
             if changed_template:
