@@ -3423,7 +3423,7 @@ class Component(  # noqa: PLR0904
                     self.log_warning("language regex timed out for %s [%s]", code, path)
                     continue
 
-                if language_match and code != "source":
+                if (language_match and code != "source") or not code:
                     result.append((path, code))
                 else:
                     self.log_info("skipping language %s [%s]", code, path)
