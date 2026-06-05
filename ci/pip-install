@@ -10,7 +10,7 @@ if [ "${1:-latest}" = edge ]; then
     # Install from git / pre-release
     mkdir -p build/packages
     # Fetch current snapshots
-    curl -LsSf https://github.com/Inventas/translate/archive/master.zip > build/packages/translate-toolkit.zip
+    curl -LsSf https://github.com/Inventas/translate/archive/refs/heads/feature/xcstrings-native-support.zip > build/packages/translate-toolkit.zip
     curl -LsSf https://github.com/WeblateOrg/language-data/archive/main.zip > build/packages/weblate-language-data.zip
     curl -LsSf https://github.com/WeblateOrg/translation-finder/archive/main.zip > build/packages/transaltion-finder.zip
     # TODO: lxml can use wheels once xmlsec has resolved possible compatibility issues
