@@ -3388,12 +3388,12 @@ class Component(  # noqa: PLR0904
 
     def get_mask_match_languages(self, path: str) -> list[str]:
         """Return language codes represented by a matched file."""
-        if not self.file_format_cls.multi_language_file:
-            return [self.get_lang_code(path)]
-        return self.file_format_cls.list_languages(
-            os.path.join(self.full_path, path),
-            file_format_params=self.file_format_params,
-        )
+        if self.file_format and self.file_format_cls.multi_language_file:
+            return self.file_format_cls.list_languages(
+                os.path.join(self.full_path, path),
+                file_format_params=self.file_format_params,
+            )
+        return [self.get_lang_code(path)]
 
     def get_language_matches(
         self,
