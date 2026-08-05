@@ -34,6 +34,7 @@ from weblate.trans.models import (
 )
 from weblate.trans.tasks import auto_translate, auto_translate_component
 from weblate.trans.tests.test_views import ViewTestCase
+from weblate.utils.celery import delete_task_metadata, get_task_metadata
 from weblate.utils.state import STATE_APPROVED, STATE_READONLY, STATE_TRANSLATED
 from weblate.utils.stats import ProjectLanguage
 from weblate.workspaces.models import Workspace
@@ -499,6 +500,60 @@ class AutoTranslationTest(ViewTestCase):
             expected_count=1,
             expected=1,
         )
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
+    def test_autotranslate_task_metadata(self) -> None:
+        translation = self.component2.translation_set.get(language_code="cs")
+        category = self.create_category(project=self.component2.project)
+        self.component2.category = category
+        self.component2.save(update_fields=["category"])
+        project_language = ProjectLanguage(
+            self.component2.project,
+            language=translation.language,
+        )
+        workspace = Workspace.objects.create(name="Automatic translation workspace")
+        Project.objects.filter(
+            pk__in={self.project.pk, self.component2.project_id}
+        ).update(workspace=workspace)
+
+        targets = (
+            ("translation", translation, None, translation.pk),
+            ("component", self.component2, self.component2.pk, None),
+            ("category", category, None, None),
+            ("project-language", project_language, None, None),
+            ("workspace", workspace, None, None),
+        )
+
+        with patch("weblate.trans.views.edit.auto_translate.delay") as delay:
+            for name, target, component_id, translation_id in targets:
+                task_id = f"auto-translate-{name}"
+                self.addCleanup(delete_task_metadata, task_id)
+                delay.return_value.id = task_id
+
+                with self.subTest(name=name):
+                    response = self.client.post(
+                        reverse(
+                            "auto_translation", kwargs={"path": target.get_url_path()}
+                        ),
+                        {
+                            "auto_source": "others",
+                            "threshold": "100",
+                            "q": "state:<translated",
+                            "mode": "translate",
+                        },
+                    )
+
+                    self.assertEqual(response.status_code, 302)
+                    self.assertEqual(
+                        get_task_metadata(task_id),
+                        {
+                            "component_id": component_id,
+                            "translation_id": translation_id,
+                            "user_id": self.user.id,
+                        },
+                    )
+                    delay.assert_called_once()
+                    delay.reset_mock()
 
     def test_autotranslate_project_language_limited_membership(self) -> None:
         czech = Language.objects.get(code="cs")
